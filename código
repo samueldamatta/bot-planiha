@@ -1,0 +1,50 @@
+import pandas as pd
+import win32com.client as win32
+
+# importar a base de dados
+tabela_vendas = pd.read_excel('Vendas.xlsx')
+
+#vizualizar a base de dados
+pd.set_option('display.max_columns', None)
+#print(tabela_vendas)
+
+#faturamento por loja
+faturamento = tabela_vendas[['ID Loja', 'Valor Final']].groupby('ID Loja').sum()
+#print(faturamento)
+
+#quantidade por produtos vendidos por loja
+quantidade = tabela_vendas[['ID Loja', 'Quantidade']].groupby('ID Loja').sum()
+#print(quantidade)
+
+#ticket medio por produto em cada loja
+ticket_medio = (faturamento['Valor Final'] / quantidade['Quantidade']).to_frame()
+ticket_medio = ticket_medio.rename(columns={0: 'Ticket Medio'})
+#print(ticket_medio)
+
+#enviar um email com relatorio
+outlook = win32.Dispatch('outlook.application')
+mail = outlook.CreateItem(0)
+mail.To = 'samueldamattaid@gmail.com'
+mail.Subject = 'Relatorio de vendas por loja'
+mail.HTMLBody = f'''
+Prezados,
+Segue o relatorio de vendas por cada loja.
+                    
+Faturamento:
+{faturamento.to_html(formatters={'Valor Final': 'R${:,.2f}'.format})}
+                    
+                    
+Quantidade Vendida:
+{quantidade.to_html()}
+                    
+Ticket Medio em cada loja:
+{ticket_medio.to_html(formatters={'Valor Final': 'R${:,.2f}'.format})}
+                    
+Qualquer dúvida estou a disposição.
+                    
+Samuel
+ '''
+
+mail.Send()
+
+print('email enviado')
